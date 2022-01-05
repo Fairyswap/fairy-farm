@@ -171,7 +171,7 @@ contract MasterChef is Ownable, Pausable, ReentrancyGuard {
     }
 
     // Deposit LP tokens to MasterChef for FAIRY allocation.
-    function deposit(uint256 _pid, uint256 _amount) external whenNotPaused {
+    function deposit(uint256 _pid, uint256 _amount) external whenNotPaused nonReentrant {
         require (block.timestamp >= startTime, 'not yet started');
         // require (_pid != 0, 'deposit FAIRY by staking');
 

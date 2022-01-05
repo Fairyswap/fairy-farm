@@ -108,7 +108,7 @@ contract SmartChef is Ownable, Pausable, ReentrancyGuard {
      * @notice Deposit staked tokens and collect reward tokens (if any)
      * @param _amount: amount to withdraw (in rewardToken)
      */
-    function deposit(uint256 _amount) external {
+    function deposit(uint256 _amount) external nonReentrant {
         require(block.timestamp >= startTime, "SmartChef: not start");
         require(block.timestamp < endTime, "SmartChef: is end");
         UserInfo storage user = userInfo[msg.sender];
