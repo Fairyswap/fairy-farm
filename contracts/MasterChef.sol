@@ -169,8 +169,8 @@ contract MasterChef is Ownable, Pausable, ReentrancyGuard {
 
     // View function to see pending FAIRYs on frontend.
     function pendingFairy(uint256 _pid, address _user) external view  validatePoolByPid(_pid) returns (uint256) {
-        PoolInfo memory pool = poolInfo[_pid];
-        UserInfo memory user = userInfo[_pid][_user];
+        PoolInfo storage pool = poolInfo[_pid];
+        UserInfo storage user = userInfo[_pid][_user];
         uint256 accFairyPerShare = pool.accFairyPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {

@@ -168,7 +168,7 @@ contract SmartChef is Ownable, Pausable, ReentrancyGuard {
      * @return Pending reward for a given user
      */
     function pendingFairy(address _user) external view returns (uint256) {
-        UserInfo memory user = userInfo[_user];
+        UserInfo storage user = userInfo[_user];
         uint256 adjustedTokenPerShare = accTokenPerShare;
         uint256 stakedTokenSupply = stakedToken.balanceOf(address(this));
         if (block.timestamp > lastRewardTime && stakedTokenSupply != 0) {
