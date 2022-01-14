@@ -51,9 +51,17 @@ contract MasterChef is Ownable, Pausable, ReentrancyGuard {
     // Info of each user that stakes LP tokens.
     mapping (uint256 => mapping (address => UserInfo)) public userInfo;
 
+    event AddPool(address indexed user, uint256 allocPoint, address lpToken, bool _withUpdate);
+    event SetPool(address indexed user, uint256 indexed pid, uint256 allocPoint, bool _withUpdate);
+    event Schedule(address indexed user, uint128[] startTimeOffset, uint256[] totalRewards, uint256[] rewardsDays);
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
+
+    modifier validatePoolByPid(uint256 _pid) {
+        require (_pid < poolInfo.length , "Pool does not exist") ; 
+        _;
+    }
 
     constructor(
         address _fairy,
@@ -77,6 +85,7 @@ contract MasterChef is Ownable, Pausable, ReentrancyGuard {
             lastRewardTime: lastRewardTime,
             accFairyPerShare: 0
         }));
+        emit AddPool(msg.sender, _allocPoint, address(_lpToken), _withUpdate);
     }
 
     function getPoolLength() external view returns (uint256) {
@@ -84,7 +93,7 @@ contract MasterChef is Ownable, Pausable, ReentrancyGuard {
     }
 
     // Update the given pool's FAIRY allocation point. Can only be called by the owner.
-    function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) external onlyOwner {
+    function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) external onlyOwner validatePoolByPid(_pid) {
         if (_withUpdate) {
             massUpdatePools();
         }
@@ -93,6 +102,7 @@ contract MasterChef is Ownable, Pausable, ReentrancyGuard {
         if (prevAllocPoint != _allocPoint) {
             totalAllocPoint = totalAllocPoint.sub(prevAllocPoint).add(_allocPoint);
         }
+        emit SetPool(msg.sender, _pid, _allocPoint, _withUpdate);
     }
 
     function setSchedule(
@@ -110,6 +120,7 @@ contract MasterChef is Ownable, Pausable, ReentrancyGuard {
                 })
             );
         }
+        emit Schedule(msg.sender, _startTimeOffset, _totalRewards, _rewardsDays);
     }
 
     function _examineEmission() internal {
@@ -133,7 +144,7 @@ contract MasterChef is Ownable, Pausable, ReentrancyGuard {
     }
 
     // Update reward variables of the given pool to be up-to-date.
-    function updatePool(uint256 _pid) public {
+    function updatePool(uint256 _pid) public validatePoolByPid(_pid) {
         PoolInfo storage pool = poolInfo[_pid];
         if (block.timestamp <= pool.lastRewardTime) {
             return;
@@ -157,9 +168,9 @@ contract MasterChef is Ownable, Pausable, ReentrancyGuard {
     }
 
     // View function to see pending FAIRYs on frontend.
-    function pendingFairy(uint256 _pid, address _user) external view returns (uint256) {
-        PoolInfo storage pool = poolInfo[_pid];
-        UserInfo storage user = userInfo[_pid][_user];
+    function pendingFairy(uint256 _pid, address _user) external view  validatePoolByPid(_pid) returns (uint256) {
+        PoolInfo memory pool = poolInfo[_pid];
+        UserInfo memory user = userInfo[_pid][_user];
         uint256 accFairyPerShare = pool.accFairyPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
@@ -171,7 +182,7 @@ contract MasterChef is Ownable, Pausable, ReentrancyGuard {
     }
 
     // Deposit LP tokens to MasterChef for FAIRY allocation.
-    function deposit(uint256 _pid, uint256 _amount) external whenNotPaused nonReentrant {
+    function deposit(uint256 _pid, uint256 _amount) external whenNotPaused nonReentrant validatePoolByPid(_pid) {
         require (block.timestamp >= startTime, 'not yet started');
         // require (_pid != 0, 'deposit FAIRY by staking');
 
@@ -193,7 +204,7 @@ contract MasterChef is Ownable, Pausable, ReentrancyGuard {
     }
 
     // Withdraw LP tokens from MasterChef.
-    function withdraw(uint256 _pid, uint256 _amount) external nonReentrant {
+    function withdraw(uint256 _pid, uint256 _amount) external nonReentrant validatePoolByPid(_pid) {
 
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
@@ -213,7 +224,7 @@ contract MasterChef is Ownable, Pausable, ReentrancyGuard {
     }
 
     // Withdraw without caring about rewards. EMERGENCY ONLY.
-    function emergencyWithdraw(uint256 _pid) external nonReentrant {
+    function emergencyWithdraw(uint256 _pid) external nonReentrant validatePoolByPid(_pid) {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         pool.lpToken.safeTransfer(address(msg.sender), user.amount);

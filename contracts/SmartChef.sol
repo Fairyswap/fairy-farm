@@ -168,17 +168,16 @@ contract SmartChef is Ownable, Pausable, ReentrancyGuard {
      * @return Pending reward for a given user
      */
     function pendingFairy(address _user) external view returns (uint256) {
-        UserInfo storage user = userInfo[_user];
+        UserInfo memory user = userInfo[_user];
+        uint256 adjustedTokenPerShare = accTokenPerShare;
         uint256 stakedTokenSupply = stakedToken.balanceOf(address(this));
         if (block.timestamp > lastRewardTime && stakedTokenSupply != 0) {
             uint256 multiplier = _getMultiplier(lastRewardTime, block.timestamp);
             uint256 fairyReward = multiplier.mul(rewardsPerSecond);
-            uint256 adjustedTokenPerShare =
-                accTokenPerShare.add(fairyReward.mul(1e12).div(stakedTokenSupply));
-            return user.amount.mul(adjustedTokenPerShare).div(1e12).sub(user.rewardDebt);
-        } else {
-            return user.amount.mul(accTokenPerShare).div(1e12).sub(user.rewardDebt);
+            adjustedTokenPerShare =
+                accTokenPerShare.add(fairyReward.mul(1e12).div(stakedTokenSupply));   
         }
+        return user.amount.mul(adjustedTokenPerShare).div(1e12).sub(user.rewardDebt);
     }
 
     // fairy mint function, just in case if rounding error causes pool to not have enough FAIRYs.
